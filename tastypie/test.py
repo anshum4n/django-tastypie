@@ -173,7 +173,7 @@ class TestApiClient(object):
             'PATH_INFO': self.client._get_path(parsed),
             'QUERY_STRING': parsed[4],
             'REQUEST_METHOD': 'PATCH',
-            'wsgi.input': FakePayload(kwargs['data']),
+            'wsgi.input': FakePayload(str(kwargs['data'])),
         }
         r.update(kwargs)
         return self.client.request(**r)
