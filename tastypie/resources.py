@@ -440,7 +440,14 @@ class Resource(object):
             raise ImmediateHttpResponse(response=http.HttpNotImplemented())
 
         self.is_authenticated(request)
-        self.is_authorized(request)
+        
+        if request_type == "detail":
+            ''' This is a potential TODO as it loads the object twice unless a cache is set.'''
+            obj = self.cached_obj_get(request=request, **self.remove_api_resource_names(kwargs))
+            self.is_authorized(request, obj)
+        else:
+            self.is_authorized(request)
+        
         self.throttle_check(request)
 
         # All clear. Process the request.
