@@ -290,7 +290,7 @@ class Resource(object):
         return [
             url(r"^(?P<resource_name>%s)%s$" % (self._meta.resource_name, trailing_slash()), self.wrap_view('dispatch_list'), name="api_dispatch_list"),
             url(r"^(?P<resource_name>%s)/schema%s$" % (self._meta.resource_name, trailing_slash()), self.wrap_view('get_schema'), name="api_get_schema"),
-            url(r"^(?P<resource_name>%s)/set/(?P<%s_list>\w[\w/;-]*)/$" % (self._meta.resource_name, self._meta.detail_uri_name), self.wrap_view('get_multiple'), name="api_get_multiple"),
+            url(r"^(?P<resource_name>%s)/set/(?P<%s_list>\w[\w/;-]*)%s$" % (self._meta.resource_name, self._meta.detail_uri_name, trailing_slash()), self.wrap_view('get_multiple'), name="api_get_multiple"),
             url(r"^(?P<resource_name>%s)/(?P<%s>\w[\w/-]*)%s$" % (self._meta.resource_name, self._meta.detail_uri_name, trailing_slash()), self.wrap_view('dispatch_detail'), name="api_dispatch_detail"),
         ]
 
@@ -2017,6 +2017,11 @@ class ModelResource(Resource):
             if field_object.blank and not bundle.data.has_key(field_name):
                 continue
 
+            # Don't save things that are not dict-alike
+            # which means it's probably a uri
+            if not hasattr(bundle.data.get(field_name, None), 'items'):
+                continue
+
             # Get the object.
             try:
                 related_obj = getattr(bundle.obj, field_object.attribute)
@@ -2063,7 +2068,11 @@ class ModelResource(Resource):
             related_objs = []
 
             for related_bundle in bundle.data[field_name]:
-                related_bundle.obj.save()
+                # We only want to save things that are dict-like.
+                # If we don't have a dict then it's a URI to an existing
+                # resource, so we don't need to call save.
+                if related_bundle.obj._state.adding:
+                    related_bundle.obj.save()
                 related_objs.append(related_bundle.obj)
 
             related_mngr.add(*related_objs)
